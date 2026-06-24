@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Rentabilidad – Uber & DiDi</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f5f3;
+    --surface: #ffffff;
+    --surface2: #f0efed;
+    --text: #1a1a18;
+    --text2: #6b6b68;
+    --text3: #a0a09c;
+    --border: rgba(0,0,0,0.10);
+    --border2: rgba(0,0,0,0.18);
+    --radius-md: 8px;
+    --radius-lg: 14px;
+    --green: #3B6D11;
+    --green-bg: #EAF3DE;
+    --red: #A32D2D;
+    --red-bg: #FCEBEB;
+    --amber: #854F0B;
+    --amber-bg: #FAEEDA;
+    --blue: #0C447C;
+    --blue-bg: #E6F1FB;
+    --coral: #993C1D;
+    --coral-bg: #FAECE7;
+    --shadow: 0 1px 4px rgba(0,0,0,0.07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18;
+      --surface: #252523;
+      --surface2: #2e2e2b;
+      --text: #f0efed;
+      --text2: #a0a09c;
+      --text3: #6b6b68;
+      --border: rgba(255,255,255,0.10);
+      --border2: rgba(255,255,255,0.18);
+      --green: #9FE1CB;
+      --green-bg: #085041;
+      --red: #F7C1C1;
+      --red-bg: #501313;
+      --amber: #FAC775;
+      --amber-bg: #633806;
+      --blue: #B5D4F4;
+      --blue-bg: #042C53;
+      --coral: #F5C4B3;
+      --coral-bg: #4A1B0C;
+    }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); font-size: 16px; line-height: 1.5; min-height: 100vh; }
+  .container { max-width: 680px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+  .app-header { margin-bottom: 1.5rem; }
+  .app-header h1 { font-size: 24px; font-weight: 600; color: var(--text); }
+  .app-header p { font-size: 14px; color: var(--text2); margin-top: 2px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; overflow-x: auto; }
+  .tab { padding: 10px 18px; font-size: 14px; border: none; background: none; color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; font-family: inherit; display: flex; align-items: center; gap: 6px; transition: color 0.15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); border-bottom: 2px solid var(--text); font-weight: 500; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Metric cards */
+  .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 1.25rem; }
+  .metric { background: var(--surface2); border-radius: var(--radius-md); padding: 14px 16px; }
+  .metric-label { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+  .metric-value { font-size: 22px; font-weight: 600; color: var(--text); }
+  .metric-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* Cards */
+  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 1rem; box-shadow: var(--shadow); }
+  .card-title { font-size: 14px; font-weight: 500; margin-bottom: 1rem; color: var(--text); display: flex; align-items: center; gap: 6px; }
+
+  /* List rows */
+  .list-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 0.5px solid var(--border); font-size: 14px; }
+  .list-row:last-child { border-bottom: none; }
+  .row-left { display: flex; align-items: center; gap: 8px; }
+  .row-right { text-align: right; }
+  .row-amount { font-weight: 500; }
+
+  /* Form */
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  @media (max-width: 420px) { .form-row { grid-template-columns: 1fr; } }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group label { font-size: 12px; color: var(--text2); }
+  .form-group input, .form-group select {
+    background: var(--surface2); border: 0.5px solid var(--border2); border-radius: var(--radius-md);
+    padding: 8px 10px; font-size: 14px; font-family: inherit; color: var(--text);
+    outline: none; transition: border-color 0.15s;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--text2); }
+  .form-group select option { background: var(--surface); }
+
+  /* Buttons */
+  .btn { font-family: inherit; font-size: 14px; cursor: pointer; border-radius: var(--radius-md); border: 0.5px solid var(--border2); background: var(--surface); color: var(--text); padding: 9px 16px; display: inline-flex; align-items: center; gap: 6px; transition: background 0.12s, transform 0.1s; }
+  .btn:hover { background: var(--surface2); }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 500; }
+  .btn-primary:hover { opacity: 0.88; background: var(--text); }
+  .btn-block { width: 100%; justify-content: center; margin-top: 4px; }
+
+  /* Badges */
+  .badge { font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
+  .badge-uber { background: var(--blue-bg); color: var(--blue); }
+  .badge-didi { background: var(--coral-bg); color: var(--coral); }
+  .badge-ambas { background: var(--green-bg); color: var(--green); }
+
+  /* Status colors */
+  .profit { color: var(--green); }
+  .loss { color: var(--red); }
+
+  /* Alert */
+  .alert { border-radius: var(--radius-md); padding: 10px 14px; font-size: 13px; margin-bottom: 1rem; display: flex; align-items: flex-start; gap: 8px; }
+  .alert i { font-size: 16px; margin-top: 1px; flex-shrink: 0; }
+  .alert-warn { background: var(--amber-bg); color: var(--amber); border-left: 3px solid currentColor; }
+  .alert-ok { background: var(--green-bg); color: var(--green); border-left: 3px solid currentColor; }
+  .alert-info { background: var(--blue-bg); color: var(--blue); border-left: 3px solid currentColor; }
+
+  /* Progress */
+  .progress-bg { background: var(--surface2); border-radius: 4px; height: 8px; overflow: hidden; margin: 6px 0 4px; }
+  .progress-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
+
+  /* Chart */
+  .chart-wrap { position: relative; width: 100%; height: 240px; }
+
+  /* Divider */
+  hr { border: none; border-top: 0.5px solid var(--border); margin: 12px 0; }
+
+  /* Config rows */
+  .config-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 0.5px solid var(--border); gap: 12px; }
+  .config-row:last-child { border-bottom: none; }
+  .config-label { font-size: 13px; color: var(--text2); flex: 1; }
+  .config-row input { width: 90px; text-align: right; }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 2.5rem 1rem; color: var(--text3); font-size: 14px; }
+  .empty i { font-size: 36px; display: block; margin-bottom: 8px; }
+
+  /* Delete button */
+  .del-btn { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 18px; padding: 0 4px; line-height: 1; font-family: inherit; transition: color 0.12s; }
+  .del-btn:hover { color: var(--red); }
+
+  /* History card */
+  .hist-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 12px 16px; margin-bottom: 8px; }
+  .hist-row { display: flex; align-items: center; justify-content: space-between; }
+  .hist-meta { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+  /* Filter buttons */
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
+
+  /* Info grid */
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px; }
+  .info-item .info-label { color: var(--text2); font-size: 12px; margin-bottom: 2px; }
+  .info-item .info-val { font-weight: 500; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 20px; border-radius: var(--radius-lg); font-size: 14px; font-weight: 500; z-index: 999; opacity: 0; transition: opacity 0.2s; pointer-events: none; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+
+  .how-to li { font-size: 13px; color: var(--text2); line-height: 1.8; margin-left: 1.2rem; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="app-header">
+    <h1>Mi Rentabilidad</h1>
+    <p>Uber · DiDi · Control de gasolina</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('resumen', this)"><i class="ti ti-chart-bar"></i> Resumen</button>
+    <button class="tab" onclick="showTab('registrar', this)"><i class="ti ti-plus"></i> Registrar</button>
+    <button class="tab" onclick="showTab('historial', this)"><i class="ti ti-clock"></i> Historial</button>
+    <button class="tab" onclick="showTab('config', this)"><i class="ti ti-settings"></i> Config</button>
+  </div>
+
+  <!-- RESUMEN -->
+  <div id="tab-resumen" class="section active">
+    <div id="alert-box"></div>
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-label">Ganancias brutas</div><div class="metric-value" id="m-bruto">$0.00</div><div class="metric-sub">este periodo</div></div>
+      <div class="metric"><div class="metric-label">Gasolina gastada</div><div class="metric-value" id="m-gas">$0.00</div><div class="metric-sub">litros: <span id="m-litros">0</span> L</div></div>
+      <div class="metric"><div class="metric-label">Ganancia neta</div><div class="metric-value" id="m-neto">$0.00</div><div class="metric-sub" id="m-margen">margen: 0%</div></div>
+      <div class="metric"><div class="metric-label">$ por kilómetro</div><div class="metric-value" id="m-km">$0.00</div><div class="metric-sub">km totales: <span id="m-kmtot">0</span></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-layout-distribute-horizontal"></i> Desglose por plataforma</div>
+      <div class="list-row">
+        <div class="row-left"><span class="badge badge-uber">Uber</span><span>Ingresos</span></div>
+        <div class="row-amount profit" id="s-uber">$0.00</div>
+      </div>
+      <div class="list-row">
+        <div class="row-left"><span class="badge badge-didi">DiDi</span><span>Ingresos</span></div>
+        <div class="row-amount profit" id="s-didi">$0.00</div>
+      </div>
+      <hr>
+      <div class="list-row">
+        <div class="row-left"><i class="ti ti-flame" style="color:var(--amber)"></i><span>Costo gasolina</span></div>
+        <div class="row-amount loss" id="s-gascost">$0.00</div>
+      </div>
+      <div class="list-row" style="font-weight:600">
+        <span>Neto final</span>
+        <span id="s-neto2">$0.00</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-gas-station"></i> Eficiencia de combustible</div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2)">
+        <span>% de ingresos en gasolina</span><span id="pct-gas" style="font-weight:500">0%</span>
+      </div>
+      <div class="progress-bg"><div class="progress-fill" id="bar-gas" style="width:0%;background:var(--amber)"></div></div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:14px">Recomendado: menos del <span id="lbl-maxpct">25</span>%</div>
+      <div class="info-grid">
+        <div class="info-item"><div class="info-label">Rendimiento promedio</div><div class="info-val" id="rend-prom">-- km/L</div></div>
+        <div class="info-item"><div class="info-label">Precio prom. gasolina</div><div class="info-val" id="precio-prom">-- $/L</div></div>
+        <div class="info-item"><div class="info-label">Ganancia por hora</div><div class="info-val" id="gxhora">-- $/h</div></div>
+        <div class="info-item"><div class="info-label">Ganancia por viaje</div><div class="info-val" id="gxviaje">-- $/viaje</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-calendar-stats"></i> Neto por día (últimos 7 días)</div>
+      <div class="chart-wrap"><canvas id="chartDias" role="img" aria-label="Ganancias netas por día de la última semana"></canvas></div>
+    </div>
+  </div>
+
+  <!-- REGISTRAR -->
+  <div id="tab-registrar" class="section">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-car"></i> Registrar jornada de trabajo</div>
+      <div class="form-row">
+        <div class="form-group"><label>Fecha</label><input type="date" id="f-fecha"></div>
+        <div class="form-group"><label>Plataforma</label>
+          <select id="f-plat"><option value="uber">Uber</option><option value="didi">DiDi</option><option value="ambas">Ambas</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Ganancia bruta ($MXN)</label><input type="number" id="f-ganancia" placeholder="0.00" min="0" step="0.01"></div>
+        <div class="form-group"><label>Kilómetros recorridos</label><input type="number" id="f-km" placeholder="0" min="0" step="1"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Viajes realizados</label><input type="number" id="f-viajes" placeholder="0" min="0" step="1"></div>
+        <div class="form-group"><label>Horas trabajadas</label><input type="number" id="f-horas" placeholder="0" min="0" step="0.5"></div>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="guardarJornada()"><i class="ti ti-device-floppy"></i> Guardar jornada</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-gas-station"></i> Registrar carga de gasolina</div>
+      <div class="form-row">
+        <div class="form-group"><label>Fecha</label><input type="date" id="g-fecha"></div>
+        <div class="form-group"><label>Litros cargados</label><input type="number" id="g-litros" placeholder="0.00" min="0" step="0.01"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Precio por litro ($MXN)</label><input type="number" id="g-precio" placeholder="24.00" min="0" step="0.01"></div>
+        <div class="form-group"><label>Total pagado ($MXN)</label><input type="number" id="g-total" placeholder="0.00" min="0" step="0.01"></div>
+      </div>
+      <div class="alert alert-info" style="margin-bottom:12px"><i class="ti ti-info-circle"></i> Puedes llenar litros + precio, o solo el total pagado. La app calcula lo que falta.</div>
+      <button class="btn btn-primary btn-block" onclick="guardarGasolina()"><i class="ti ti-device-floppy"></i> Guardar carga</button>
+    </div>
+  </div>
+
+  <!-- HISTORIAL -->
+  <div id="tab-historial" class="section">
+    <div class="filter-bar">
+      <button class="btn" id="hf-todo" onclick="filtrarHist('todo',this)">Todo</button>
+      <button class="btn" id="hf-uber" onclick="filtrarHist('uber',this)"><span class="badge badge-uber">Uber</span></button>
+      <button class="btn" id="hf-didi" onclick="filtrarHist('didi',this)"><span class="badge badge-didi">DiDi</span></button>
+      <button class="btn" id="hf-gas" onclick="filtrarHist('gas',this)"><i class="ti ti-flame"></i> Gasolina</button>
+    </div>
+    <div id="historial-lista"></div>
+  </div>
+
+  <!-- CONFIG -->
+  <div id="tab-config" class="section">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-car"></i> Tu vehículo</div>
+      <div class="config-row"><span class="config-label">Rendimiento (km/litro)</span><input type="number" id="c-rend" value="12" min="1" max="30" step="0.5" onchange="saveConfig()"></div>
+      <div class="config-row"><span class="config-label">Precio ref. gasolina ($/litro)</span><input type="number" id="c-precio" value="24.50" min="1" step="0.01" onchange="saveConfig()"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="ti ti-target"></i> Metas</div>
+      <div class="config-row"><span class="config-label">Meta de ganancia neta diaria ($)</span><input type="number" id="c-meta" value="800" min="0" step="50" onchange="saveConfig()"></div>
+      <div class="config-row"><span class="config-label">% máximo en gasolina</span><input type="number" id="c-pct" value="25" min="5" max="80" step="1" onchange="saveConfig()"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="ti ti-database"></i> Datos</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <button class="btn" onclick="exportarCSV()"><i class="ti ti-download"></i> Exportar CSV</button>
+        <button class="btn" onclick="confirmarBorrado()"><i class="ti ti-trash" style="color:var(--red)"></i> Borrar todo</button>
+      </div>
+      <div style="font-size:12px;color:var(--text3)">Los datos se guardan en tu navegador (localStorage) y persisten entre sesiones.</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="ti ti-help-circle"></i> Cómo usar la app</div>
+      <ol class="how-to">
+        <li>Configura el rendimiento de tu carro y el precio de la gasolina.</li>
+        <li>Cada día que trabajes, registra tu jornada con ganancias y kilómetros.</li>
+        <li>Cada que cargues gasolina, regístralo con litros y precio.</li>
+        <li>El resumen muestra tu ganancia real descontando combustible.</li>
+        <li>Exporta en CSV para llevar contabilidad en Excel o Google Sheets.</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY_J = 'mrent_jornadas';
+const KEY_G = 'mrent_gasolinas';
+const KEY_C = 'mrent_config';
+
+let state = {
+  jornadas: JSON.parse(localStorage.getItem(KEY_J)||'[]'),
+  gasolinas: JSON.parse(localStorage.getItem(KEY_G)||'[]'),
+  config: JSON.parse(localStorage.getItem(KEY_C)||'{"rend":12,"precio":24.50,"meta":800,"pct":25}')
+};
+
+function save() {
+  localStorage.setItem(KEY_J, JSON.stringify(state.jornadas));
+  localStorage.setItem(KEY_G, JSON.stringify(state.gasolinas));
+  localStorage.setItem(KEY_C, JSON.stringify(state.config));
+}
+
+function fmt(n) { return '$'+Number(n).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtN(n) { return Number(n).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+function showTab(name, btn) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='resumen') renderResumen();
+  if(name==='historial') renderHistorial('todo');
+  if(name==='config') loadConfigUI();
+}
+
+let chartDias = null;
+function renderResumen() {
+  const j = state.jornadas;
+  const g = state.gasolinas;
+  const bruto = j.reduce((a,x)=>a+x.ganancia,0);
+  const gasCost = g.reduce((a,x)=>a+x.total,0);
+  const litros = g.reduce((a,x)=>a+x.litros,0);
+  const neto = bruto - gasCost;
+  const km = j.reduce((a,x)=>a+x.km,0);
+  const horas = j.reduce((a,x)=>a+x.horas,0);
+  const viajes = j.reduce((a,x)=>a+x.viajes,0);
+  const margen = bruto>0 ? (neto/bruto*100) : 0;
+  const pctGas = bruto>0 ? (gasCost/bruto*100) : 0;
+
+  const uberBruto = j.filter(x=>x.plat==='uber').reduce((a,x)=>a+x.ganancia,0)
+    + j.filter(x=>x.plat==='ambas').reduce((a,x)=>a+x.ganancia*0.5,0);
+  const didiBruto = j.filter(x=>x.plat==='didi').reduce((a,x)=>a+x.ganancia,0)
+    + j.filter(x=>x.plat==='ambas').reduce((a,x)=>a+x.ganancia*0.5,0);
+
+  document.getElementById('m-bruto').textContent = fmt(bruto);
+  document.getElementById('m-gas').textContent = fmt(gasCost);
+  document.getElementById('m-litros').textContent = fmtN(litros);
+  const netoEl = document.getElementById('m-neto');
+  netoEl.textContent = fmt(neto);
+  netoEl.className = 'metric-value ' + (neto>=0?'profit':'loss');
+  document.getElementById('m-margen').textContent = 'margen: ' + margen.toFixed(1)+'%';
+  document.getElementById('m-km').textContent = km>0 ? fmt(neto/km) : '$0.00';
+  document.getElementById('m-kmtot').textContent = Math.round(km);
+  document.getElementById('s-uber').textContent = fmt(uberBruto);
+  document.getElementById('s-didi').textContent = fmt(didiBruto);
+  document.getElementById('s-gascost').textContent = fmt(gasCost);
+  const netoEl2 = document.getElementById('s-neto2');
+  netoEl2.textContent = fmt(neto);
+  netoEl2.className = neto>=0?'profit':'loss';
+
+  const maxPct = state.config.pct;
+  document.getElementById('pct-gas').textContent = pctGas.toFixed(1)+'%';
+  document.getElementById('lbl-maxpct').textContent = maxPct;
+  const bar = document.getElementById('bar-gas');
+  bar.style.width = Math.min(pctGas,100)+'%';
+  bar.style.background = pctGas > maxPct ? '#E24B4A' : pctGas > maxPct*0.8 ? '#BA7517' : '#639922';
+
+  const rendProm = litros>0&&km>0 ? km/litros : null;
+  const precioProm = litros>0 ? gasCost/litros : null;
+  document.getElementById('rend-prom').textContent = rendProm ? rendProm.toFixed(1)+' km/L' : '--';
+  document.getElementById('precio-prom').textContent = precioProm ? '$'+precioProm.toFixed(2)+'/L' : '--';
+  document.getElementById('gxhora').textContent = horas>0 ? fmt(neto/horas)+'/h' : '--';
+  document.getElementById('gxviaje').textContent = viajes>0 ? fmt(bruto/viajes)+'/viaje' : '--';
+
+  const alertBox = document.getElementById('alert-box');
+  if(j.length===0){
+    alertBox.innerHTML='<div class="alert alert-info"><i class="ti ti-info-circle"></i> Aún no hay registros. Ve a <b>Registrar</b> para comenzar.</div>';
+  } else if(pctGas > maxPct){
+    alertBox.innerHTML='<div class="alert alert-warn"><i class="ti ti-alert-triangle"></i> Tu gasto en gasolina supera el '+maxPct+'% de tus ingresos. Considera reducir kilómetros en vacío.</div>';
+  } else {
+    alertBox.innerHTML='<div class="alert alert-ok"><i class="ti ti-circle-check"></i> Tu eficiencia de combustible está dentro del rango recomendado.</div>';
+  }
+
+  renderChart(j, g);
+}
+
+function renderChart(j, g) {
+  const today = new Date();
+  const diasNombres = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const labels = [], data = [];
+  for(let i=6;i>=0;i--){
+    const d = new Date(today);
+    d.setDate(d.getDate()-i);
+    const key = d.toISOString().split('T')[0];
+    const sum = j.filter(x=>x.fecha===key).reduce((a,x)=>a+x.ganancia,0);
+    const gasDay = g.filter(x=>x.fecha===key).reduce((a,x)=>a+x.total,0);
+    labels.push(diasNombres[d.getDay()]);
+    data.push(+(sum-gasDay).toFixed(2));
+  }
+  const ctx = document.getElementById('chartDias').getContext('2d');
+  if(chartDias) chartDias.destroy();
+  chartDias = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'Neto ($)', data, backgroundColor:data.map(v=>v>=0?'#639922':'#E24B4A'), borderRadius:5 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{
+        y:{ ticks:{callback:v=>'$'+v, font:{size:11}}, grid:{color:'rgba(128,128,128,0.1)'} },
+        x:{ ticks:{font:{size:12}}, grid:{display:false} }
+      }
+    }
+  });
+}
+
+function guardarJornada() {
+  const fecha = document.getElementById('f-fecha').value;
+  const plat = document.getElementById('f-plat').value;
+  const ganancia = parseFloat(document.getElementById('f-ganancia').value)||0;
+  const km = parseFloat(document.getElementById('f-km').value)||0;
+  const viajes = parseInt(document.getElementById('f-viajes').value)||0;
+  const horas = parseFloat(document.getElementById('f-horas').value)||0;
+  if(!fecha||ganancia<=0){ toast('⚠ Ingresa fecha y ganancia'); return; }
+  state.jornadas.push({fecha,plat,ganancia,km,viajes,horas,id:Date.now()});
+  save();
+  ['f-ganancia','f-km','f-viajes','f-horas'].forEach(id=>document.getElementById(id).value='');
+  toast('✓ Jornada guardada');
+}
+
+function guardarGasolina() {
+  const fecha = document.getElementById('g-fecha').value;
+  let litros = parseFloat(document.getElementById('g-litros').value)||0;
+  let precio = parseFloat(document.getElementById('g-precio').value)||0;
+  let total = parseFloat(document.getElementById('g-total').value)||0;
+  if(!fecha){ toast('⚠ Ingresa la fecha'); return; }
+  if(litros>0&&precio>0) total = litros*precio;
+  else if(total>0&&precio>0) litros = total/precio;
+  else if(total>0&&litros>0) precio = total/litros;
+  else if(total>0) { litros = total/state.config.precio; precio = state.config.precio; }
+  else { toast('⚠ Ingresa al menos el total pagado'); return; }
+  state.gasolinas.push({fecha,litros:+litros.toFixed(2),precio:+precio.toFixed(2),total:+total.toFixed(2),id:Date.now()});
+  save();
+  ['g-litros','g-precio','g-total'].forEach(id=>document.getElementById(id).value='');
+  toast('✓ Carga de gasolina guardada');
+}
+
+let histFiltro='todo';
+function filtrarHist(f, btn) {
+  histFiltro=f;
+  document.querySelectorAll('.filter-bar .btn').forEach(b=>b.style.fontWeight='400');
+  if(btn) btn.style.fontWeight='500';
+  renderHistorial(f);
+}
+
+function renderHistorial(f) {
+  const lista = document.getElementById('historial-lista');
+  let items=[];
+  if(f==='gas') items=state.gasolinas.map(x=>({tipo:'gas',...x}));
+  else if(f==='uber') items=state.jornadas.filter(x=>x.plat==='uber'||x.plat==='ambas').map(x=>({tipo:'jornada',...x}));
+  else if(f==='didi') items=state.jornadas.filter(x=>x.plat==='didi'||x.plat==='ambas').map(x=>({tipo:'jornada',...x}));
+  else items=[...state.jornadas.map(x=>({tipo:'jornada',...x})),...state.gasolinas.map(x=>({tipo:'gas',...x}))];
+  items.sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  if(!items.length){
+    lista.innerHTML='<div class="empty"><i class="ti ti-inbox"></i>Sin registros aquí todavía</div>'; return;
+  }
+  lista.innerHTML=items.map(x=>{
+    if(x.tipo==='jornada'){
+      const badge=x.plat==='uber'?'badge-uber':x.plat==='didi'?'badge-didi':'badge-ambas';
+      const label=x.plat==='uber'?'Uber':x.plat==='didi'?'DiDi':'Ambas';
+      return `<div class="hist-card"><div class="hist-row"><div style="display:flex;align-items:center;gap:8px"><span class="badge ${badge}">${label}</span><div><div style="font-size:14px;font-weight:500">${x.fecha}</div><div class="hist-meta">${x.viajes} viajes · ${x.horas}h · ${Math.round(x.km)} km</div></div></div><div style="display:flex;align-items:center;gap:6px"><span class="profit" style="font-weight:500">${fmt(x.ganancia)}</span><button class="del-btn" onclick="eliminarJornada(${x.id})" title="Eliminar">×</button></div></div></div>`;
+    } else {
+      return `<div class="hist-card"><div class="hist-row"><div style="display:flex;align-items:center;gap:8px"><i class="ti ti-gas-station" style="font-size:20px;color:var(--amber)"></i><div><div style="font-size:14px;font-weight:500">${x.fecha}</div><div class="hist-meta">${fmtN(x.litros)} L · $${fmtN(x.precio)}/L</div></div></div><div style="display:flex;align-items:center;gap:6px"><span class="loss" style="font-weight:500">${fmt(x.total)}</span><button class="del-btn" onclick="eliminarGas(${x.id})" title="Eliminar">×</button></div></div></div>`;
+    }
+  }).join('');
+}
+
+function eliminarJornada(id) {
+  if(!confirm('¿Eliminar este registro?')) return;
+  state.jornadas=state.jornadas.filter(x=>x.id!==id);
+  save(); renderHistorial(histFiltro); toast('Registro eliminado');
+}
+function eliminarGas(id) {
+  if(!confirm('¿Eliminar este registro?')) return;
+  state.gasolinas=state.gasolinas.filter(x=>x.id!==id);
+  save(); renderHistorial(histFiltro); toast('Registro eliminado');
+}
+
+function loadConfigUI() {
+  document.getElementById('c-rend').value=state.config.rend;
+  document.getElementById('c-precio').value=state.config.precio;
+  document.getElementById('c-meta').value=state.config.meta;
+  document.getElementById('c-pct').value=state.config.pct;
+}
+function saveConfig() {
+  state.config.rend=parseFloat(document.getElementById('c-rend').value)||12;
+  state.config.precio=parseFloat(document.getElementById('c-precio').value)||24.50;
+  state.config.meta=parseFloat(document.getElementById('c-meta').value)||800;
+  state.config.pct=parseFloat(document.getElementById('c-pct').value)||25;
+  save(); toast('✓ Configuración guardada');
+}
+
+function exportarCSV() {
+  let csv='Tipo,Fecha,Plataforma,Ganancia,KM,Viajes,Horas,Litros,Precio_L,Total_Gas\n';
+  state.jornadas.forEach(x=>{ csv+=`Jornada,${x.fecha},${x.plat},${x.ganancia},${x.km},${x.viajes},${x.horas},,,\n`; });
+  state.gasolinas.forEach(x=>{ csv+=`Gasolina,${x.fecha},,,,,,${x.litros},${x.precio},${x.total}\n`; });
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='mi_rentabilidad.csv';
+  a.click(); URL.revokeObjectURL(url);
+  toast('✓ CSV descargado');
+}
+function confirmarBorrado() {
+  if(confirm('¿Borrar TODOS los datos? Esta acción no se puede deshacer.')){
+    state.jornadas=[]; state.gasolinas=[];
+    save(); renderResumen(); toast('Datos eliminados');
+  }
+}
+
+// Init
+document.getElementById('f-fecha').value=new Date().toISOString().split('T')[0];
+document.getElementById('g-fecha').value=new Date().toISOString().split('T')[0];
+loadConfigUI();
+renderResumen();
+</script>
+</body>
+</html>
